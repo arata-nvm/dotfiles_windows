@@ -1,0 +1,196 @@
+set nocompatible
+set modeline
+
+filetype off
+
+set rtp+=~/.vim/bundle/Vundle.vim " Install dir for vundle
+call vundle#begin()
+Plugin 'VundleVim/Vundle.vim'
+
+" Directory Tree View
+" usage enter :NERDTree in ex mode
+Plugin 'scrooloose/nerdtree'
+
+" Indent Seeing
+Plugin 'nathanaelkane/vim-indent-guides'
+
+" Xml
+Plugin 'vim-scripts/xmledit'
+
+" Velocity
+Plugin 'lepture/vim-velocity'
+
+Plugin 'vim-scripts/TortoiseSVN.vim'
+
+" Alignment
+Plugin 'junegunn/vim-easy-align'
+
+" Read properties file
+Plugin 'kamichidu/vim-edit-properties'
+
+Plugin 'itchyny/lightline.vim'
+
+Plugin 'prabirshrestha/async.vim'
+Plugin 'prabirshrestha/vim-lsp'
+
+Plugin 'prabirshrestha/asyncomplete.vim'
+Plugin 'prabirshrestha/asyncomplete-lsp.vim'
+
+Plugin 'skanehira/train.vim'
+
+call vundle#end()
+filetype plugin indent on
+
+:let g:tortoiseSvnCmd='c:\Program Files\TortoiseSVN\bin\TortoiseProc.exe'
+:let g:NERDTreeDirArrows=1
+:let g:NERDTreeDirArrowExpandable='>'
+:let g:NERDTreeDirArrowCollapsible='v'
+
+" edit settings
+"" tab width on press tab key(ts)
+set tabstop=4
+"" tab width auto indent and > command(sw)
+set shiftwidth=4
+"" tab to space
+set expandtab
+"" Use tab on XML editing
+augroup fileTypeIndent
+    autocmd!
+    autocmd BufNewFile,BufRead *.xml setlocal noet "noexpandtab
+augroup END
+"" Disable auto formatting on long line(tw)
+set textwidth=0
+"" Show line number(nu)
+set number
+"" Share OS clipboard
+set clipboard=unnamed
+"" Soft wrap when over editor area
+set wrap
+"" Disable auto insert comment characters
+"set fo-=ro " but not working
+"" show white space
+set list
+set listchars=tab:>_,trail:_
+
+" Cursor position never top/end(so)
+set scrolloff=5
+
+" File encodings
+set fileencodings=ucs-bom,iso-2022-jp-3,iso-2022-jp,eucjp-ms,euc-jisx0213,euc-jp,sjis,utf-8,cp932
+
+" Color setting
+colorscheme desert
+"" Highlight current cursor line(cul)
+set cursorline
+set cursorcolumn
+augroup my_cursorline
+    autocmd!
+    autocmd BufNewFile,BufRead,VimEnter * call s:set_cursorline()
+    autocmd BufWritePost *vimrc call s:set_cursorline()
+    function! s:set_cursorline()
+        hi clear CursorLine
+"        hi Normal ctermfg=White
+"        hi CursorLine ctermbg=DarkGrey
+        hi CursorLineNr ctermbg=DarkGreen
+        hi Error ctermfg=Black
+    endfunction
+augroup END
+
+" ZIPC special settings
+augroup zipcType
+    autocmd!
+    "autocmd BufNewFile,BufRead *.func,*.str,*.var,*.def,*.flow set fencs=cp932,utf-8
+    autocmd BufNewFile,BufRead *.func,*.str,*.var,*.def,*.flow set ft=c 
+    autocmd BufNewFile,BufRead *.func,*.str,*.var,*.def,*.flow setl fenc=cp932
+augroup END
+
+" indent guide options(:h indent_guides)
+let g:indent_guides_enable_on_vim_startup=1
+let g:indent_guides_start_level=1
+let g:indent_guides_guide_size=2
+let g:indent_guides_exclude_filetypes = ['help', 'nerdtree']
+
+" Alignment
+xmap ga <Plug>(EasyAlign)
+nmap ga <Plug>(EasyAlign)
+
+" Velocity
+aug filetypeplugin
+    au! BufRead,BufNewFile *.vm
+    au BufRead,BufNewFile *.vm set ft=html syntax=velocity
+aug end
+
+
+" Mapping
+inoremap jj <ESC>
+"" Add blank line
+nnoremap <silent><S-CR> o<ESC>
+"" Toggle directory window
+nnoremap <silent><C-t> :NERDTreeToggle<CR>
+"" Move down(visual line)
+nnoremap <silent>j gj
+"" Move up(visual line)
+nnoremap <silent>k gk
+"" Open _vimrc
+nmap <F2> :tabnew $MYVIMRC<CR>
+"" grep next
+map gn :w<BAR>:cn<CR>
+map gp :cp<CR>
+
+" disable undo file
+set undodir=
+set undofile
+" disable backup
+set nobackup
+
+" ウインドウの幅
+set columns=150
+" ウインドウの高さ
+set lines=45
+
+" markdown settings
+augroup markdown
+    autocmd!
+    autocmd BufNewFile,BufRead *.md se ts=1 sw=1
+augroup END
+" Auto reload .vimrc when save
+augroup source-vimrc
+    autocmd!
+    autocmd BufWritePost *vimrc source $MYVIMRC | set foldmethod=marker
+    "autocmd BufWritePost *gvimrc if has('gui_running') source $MYGVIMRC
+augroup END
+
+augroup MyLsp
+  autocmd!
+  " pip install python-language-server
+  if executable('pyls')
+    " Python用の設定を記載
+    " workspace_configで以下の設定を記載
+    " - pycodestyleの設定はALEと重複するので無効にする
+    " - jediの定義ジャンプで一部無効になっている設定を有効化
+    autocmd User lsp_setup call lsp#register_server({
+        \ 'name': 'pyls',
+        \ 'cmd': { server_info -> ['pyls'] },
+        \ 'whitelist': ['python'],
+        \ 'workspace_config': {'pyls': {'plugins': {
+        \   'pycodestyle': {'enabled': v:false},
+        \   'jedi_definition': {'follow_imports': v:true, 'follow_builtin_imports': v:true},}}}
+        \})
+    autocmd FileType python call s:configure_lsp()
+  endif
+augroup END
+" 言語ごとにServerが実行されたらする設定を関数化
+function! s:configure_lsp() abort
+  setlocal omnifunc=lsp#complete   " オムニ補完を有効化
+  " LSP用にマッピング
+  nnoremap <buffer> <C-]> :<C-u>LspDefinition<CR>
+  nnoremap <buffer> gd :<C-u>LspDefinition<CR>
+  nnoremap <buffer> gD :<C-u>LspReferences<CR>
+  nnoremap <buffer> gs :<C-u>LspDocumentSymbol<CR>
+  nnoremap <buffer> gS :<C-u>LspWorkspaceSymbol<CR>
+  nnoremap <buffer> gQ :<C-u>LspDocumentFormat<CR>
+  vnoremap <buffer> gQ :LspDocumentRangeFormat<CR>
+  nnoremap <buffer> K :<C-u>LspHover<CR>
+  nnoremap <buffer> <F1> :<C-u>LspImplementation<CR>
+  nnoremap <buffer> <F2> :<C-u>LspRename<CR>
+endfunction
